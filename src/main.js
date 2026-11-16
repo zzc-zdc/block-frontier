@@ -168,6 +168,7 @@ function startWorld(config=null,fromRoom=false) {
     active=true;loading=true;pauseInput();showPanel(null);
     document.body.classList.add('playing');
     hide('menu',true);hide('hud',false);hide('mobile',!touch);hide('room-badge',!fromRoom);
+    hide('pause-party',!fromRoom);txt('quit',fromRoom?'离开房间并返回主菜单':'保存并返回主菜单');
     warmRegion(true);paintHotbar();paintHUD(true);pumpRegion();
     if(!fromRoom)lock();
     audio.play('open');
@@ -409,6 +410,7 @@ listen('menu-settings','click',()=>showPanel('settings'));
 listen('help','click',()=>showPanel('help-panel'));
 listen('pause-settings','click',()=>showPanel('settings','pause'));
 listen('pause-help','click',()=>showPanel('help-panel','pause'));
+listen('pause-party','click',()=>showPanel('party','pause'));
 for(const id of ['hud-pause','act-pause'])listen(id,'click',()=>showPanel('pause'));
 listen('act-bag','click',()=>{if(canAct())bag();});
 listen('resume','click',()=>{audio.unlock();closePanel(true);});
@@ -460,6 +462,10 @@ window.addEventListener('keydown',e=>{
   if(!active||['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;
   if(e.code==='KeyE'&&!e.repeat&&(!panel||panel==='inventory')) {
     if(panel==='inventory')closePanel(true);else if(canAct())bag();e.preventDefault();return;
+  }
+  if(e.code==='KeyP'&&room&&!e.repeat&&(!panel||panel==='party')) {
+    if(panel)closePanel(true);else showPanel('party');
+    e.preventDefault();return;
   }
   if(panel||(!canAct()&&e.code!=='Escape'))return;
   if(e.code.startsWith('Digit')){const i=Number(e.code.slice(5))-1;if(i>=0&&i<9)select(i);}

@@ -137,6 +137,8 @@ export class Room extends EventTarget {
     this.lastPose = 0;
     this.lastSync = 0;
     this.reconnectTimer = null;
+    this.hostLossTimer = null;
+    this.pageExit = () => this.close();
   }
 
   notify(type, detail) {
@@ -217,6 +219,7 @@ export class Room extends EventTarget {
   }
 
   bindPeer(peer) {
+    window.addEventListener('pagehide', this.pageExit, { once: true });
     peer.on('disconnected', () => {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = setTimeout(() => {
@@ -225,6 +228,21 @@ export class Room extends EventTarget {
     });
     peer.on('close', () => {
       if (this.peer === peer && this.code) this.disconnect('联机连接已关闭。');
+    });
+  }
+
+  watchHost(host) {
+    const connection = host.peerConnection;
+    if (!connection) return;
+    connection.addEventListener('iceconnectionstatechange', () => {
+      if (this.host !== host) return;
+      clearTimeout(this.hostLossTimer);
+      if (connection.iceConnectionState !== 'disconnected') return;
+      this.hostLossTimer = setTimeout(() => {
+        if (this.host === host && connection.iceConnectionState === 'disconnected') {
+          this.disconnect('与房主的连接中断。');
+        }
+      }, 8_000);
     });
   }
 
@@ -340,7 +358,10 @@ export class Room extends EventTarget {
       const timer = setTimeout(() => finish(new Error('连接房主超时，请检查双方网络并重试。')), JOIN_TIMEOUT);
       signal.addEventListener('abort', abort, { once: true });
       peer.on('error', handlePeerError);
-      host.on('open', () => send(host, { type: 'hello', name: this.name }));
+      host.on('open', () => {
+        this.watchHost(host);
+        send(host, { type: 'hello', name: this.name });
+      });
       host.on('error', () => {
         if (!live) finish(new Error('无法连接房主，请检查双方网络后重试。'));
         else if (this.host === host) this.disconnect('与房主的连接中断。');
@@ -465,10 +486,13 @@ export class Room extends EventTarget {
 
   close() {
     if (this.isHost) this.broadcast({ type: 'close' });
+    globalThis.window?.removeEventListener('pagehide', this.pageExit);
     this.controller?.abort();
     this.controller = null;
     clearTimeout(this.reconnectTimer);
+    clearTimeout(this.hostLossTimer);
     this.reconnectTimer = null;
+    this.hostLossTimer = null;
     const peer = this.peer;
     const host = this.host;
     this.peer = null;
