@@ -23,7 +23,7 @@ let view, world, player, inventory, fauna, worker, room, errorMessage;
 let worldSeed=SEED;
 let time=47, selection=0, panel=null, back=null, active=false, loading=false, roomPending=false;
 let chosenPreset=preferences.quality==='auto'?(touch?'low':'high'):preferences.quality;
-let dirtySave=false, saveTick=0, elapsed=0, lastStep=0, lastFPS=0, sampleFrames=0, measuredFPS=0, lowSamples=0, lastHUD=-1, lastAudio=-1;
+let dirtySave=false, saveTick=0, elapsed=0, lastStep=0, lastFPS=0, sampleFrames=0, sampleTime=0, measuredFPS=0, lowSamples=0, lastHUD=-1, lastAudio=-1;
 let saveWarning=false, overlayFocus=null, sim=0, stage=0, goalPlaced=0, lastSwing=-20;
 let aimed=null,mining=null,lastMine=0,toastTimer=0,roomToastTimer=0,contextLost=false,bench=false;
 const keys=new Set(), input={forward:0,side:0,jump:false,down:false,run:false};
@@ -183,6 +183,7 @@ function exitWorld(persist=true) {
   if(document.pointerLockElement)document.exitPointerLock?.();
   audio.setEnvironment?.({enabled:false});
   document.body.classList.remove('playing');
+  document.body.classList.remove('hurt');
   hide('hud',true);hide('mobile',true);hide('menu',false);hide('room-badge',true);
   hide('continue',!read(STORE));view?.reset();
   world=player=inventory=fauna=null;
@@ -282,6 +283,7 @@ function setBlock([x,y,z,id],broadcast=true) {
 }
 function resetMine() {
   mining=null;
+  view?.damageBlock(null);
   hide('mining-meter',true);
   $('mining-meter').style.setProperty('--progress','0%');
 }
@@ -306,9 +308,11 @@ function mine(dt) {
   mining.t+=dt;
   if(elapsed-lastMine>.17){lastMine=elapsed;view.hit();audio.play('mine',a.id);}
   hide('mining-meter',false);$('mining-meter').style.setProperty('--progress',Math.min(100,mining.t/need*100)+'%');
+  view.damageBlock(a,mining.t/need);
   if(mining.t<need)return;
   if(setBlock([a.x,a.y,a.z,B.AIR])) {
     view.splash(a);audio.play('break',a.id);
+    if(touch)navigator.vibrate?.(14);
     if(player.mode==='survival'&&canHarvest(a.id,held)){
       const drop=dropFor(a.id);
       if(inventory.add(drop))paintHotbar();
@@ -334,6 +338,7 @@ function place() {
   if(y<1||y>=HEIGHT||overlaps(player.p,x,y,z)||![B.AIR,B.WATER,B.FLOWER,B.FERN,B.MUSHROOM].includes(there))return;
   if(setBlock([x,y,z,held])) {
     inventory.take(held);paintHotbar();view.hit();audio.play('place',held);
+    if(touch)navigator.vibrate?.(8);
     if(stage===3&&++goalPlaced>=6)advance(4);
   }
 }
@@ -531,13 +536,13 @@ function tick(now) {
   if(!active||contextLost||!player)return;
   try {
     const dt=clamp(delta,0,.065);elapsed+=dt;
-    if(!panel)sampleFrames++;
-    if(Math.floor(elapsed/2)!==Math.floor((elapsed-dt)/2)) {
-      if(sampleFrames>=20)measuredFPS=Math.round(sampleFrames/2);
-      if(preferences.quality==='auto'&&chosenPreset!=='low'&&sampleFrames>40&&sampleFrames<98){
+    if(!panel&&!loading&&!document.hidden){sampleFrames++;sampleTime+=delta;}
+    if(sampleTime>=2) {
+      measuredFPS=Math.round(sampleFrames/sampleTime);
+      if(preferences.quality==='auto'&&chosenPreset!=='low'&&measuredFPS<53){
         if(++lowSamples>=2){chosenPreset=chosenPreset==='high'?'balanced':'low';view.configure(chosenPreset);warmRegion(true);lowSamples=0;}
       }else lowSamples=0;
-      sampleFrames=0;
+      sampleFrames=0;sampleTime=0;
     }
     installMesh();pumpRegion();
     if(loading&&view.chunks.has(chunkKey(currentCx,currentCz))&&loaded>=5)loading=false;

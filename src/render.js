@@ -62,6 +62,31 @@ function meshPart(data,material) {
   return new T.Mesh(g,material);
 }
 
+function crackFrames() {
+  const traces=[
+    [[15,17],[11,12],[13,8],[9,4],[8,0]],
+    [[15,17],[20,13],[24,14],[28,9],[32,8]],
+    [[15,17],[15,21],[21,23],[24,29],[24,32]],
+    [[15,17],[9,19],[5,16],[0,17]],
+    [[11,12],[7,11],[4,6],[0,5]],
+    [[21,23],[25,21],[29,24],[32,24]],
+    [[15,21],[12,26],[7,28],[5,32]],
+    [[24,14],[25,17],[30,19],[32,18]],
+    [[20,13],[19,7],[21,4],[20,0]],
+  ];
+  return traces.map((_,i)=>{
+    const a=document.createElement('canvas');a.width=a.height=32;
+    const ctx=a.getContext('2d');
+    for(const line of traces.slice(0,i+1)) {
+      ctx.strokeStyle='rgba(222,204,166,.58)';ctx.lineWidth=1.55;ctx.beginPath();
+      line.forEach(([x,y],j)=>j?ctx.lineTo(x+.8,y+1.2):ctx.moveTo(x+.8,y+1.2));ctx.stroke();
+      ctx.strokeStyle='rgba(18,13,10,.88)';ctx.lineWidth=1.3;ctx.beginPath();
+      line.forEach(([x,y],j)=>j?ctx.lineTo(x+.5,y+.5):ctx.moveTo(x+.5,y+.5));ctx.stroke();
+    }
+    const t=new T.CanvasTexture(a);t.magFilter=T.NearestFilter;t.minFilter=T.NearestFilter;t.colorSpace=T.SRGBColorSpace;return t;
+  });
+}
+
 export class View {
   constructor(host) {
     this.host=host;
@@ -121,6 +146,9 @@ export class View {
     const outline=new T.EdgesGeometry(new T.BoxGeometry(1.006,1.006,1.006));
     this.outline=new T.LineSegments(outline,new T.LineBasicMaterial({color:'#fff2c0',transparent:true,opacity:.87}));
     this.outline.visible=false; this.scene.add(this.outline);
+    this.crack=new T.Mesh(new T.BoxGeometry(1.003,1.003,1.003),
+      new T.MeshBasicMaterial({transparent:true,depthWrite:false,alphaTest:.08}));
+    this.crack.visible=false;this.crack.renderOrder=3;this.scene.add(this.crack);
     this.chunks=new Map(); this.mobs=new Map(); this.remote=new Map(); this.effects=[];
     this.particleGeo=new T.BoxGeometry(1,1,1);
     this.cube=new T.BoxGeometry(1,1,1);
@@ -181,12 +209,24 @@ export class View {
     for(const map of [this.mobs,this.remote]) { for(const o of map.values()) this.removeActor(o); map.clear(); }
     for(const p of this.effects) {for(const q of p.cubes)this.scene.remove(q.mesh);p.mesh.material.dispose();}
     this.effects.length=0; this.torch.intensity=0; this.torchScan=0;
+    this.crack.visible=false;
   }
   aim(hit) {
     this.outline.visible=!!hit;
     if(hit) this.outline.position.set(hit.x+.5,hit.y+.5,hit.z+.5);
   }
   hit() { this.swing=.30; }
+  damageBlock(hit,progress=0) {
+    this.crack.visible=!!hit&&progress>.06&&!!BLOCKS[hit.id]?.solid;
+    if(!this.crack.visible)return;
+    this.cracks??=crackFrames();
+    const tex=this.cracks[Math.floor(clamp(progress*this.cracks.length,0,this.cracks.length-1))];
+    if(this.crack.material.map!==tex) {
+      if(!this.crack.material.map)this.crack.material.needsUpdate=true;
+      this.crack.material.map=tex;
+    }
+    this.crack.position.set(hit.x+.5,hit.y+.5,hit.z+.5);
+  }
   splash(hit) {
     const color=BLOCKS[hit.id]?.color??(hit.id===B.GRASS?'#809755':hit.id===B.LOG?'#997652':'#ad9d82');
     if(this.effects.length>45) return;
@@ -212,7 +252,7 @@ export class View {
         const tile=tiles[f],x=tile%TILE_COLS,y=Math.floor(tile/TILE_COLS);
         for(let j=0;j<4;j++) uv.setXY(f*4+j,(x+(j%2?1-TILE_INSET:TILE_INSET))/TILE_COLS,1-(y+(j<2?TILE_INSET:1-TILE_INSET))/TILE_ROWS);
       }
-      uv.needsUpdate=true; this.heldCube.scale.setScalar(.21); this.heldCube.position.set(0,.025,-.09);
+      uv.needsUpdate=true; this.heldCube.scale.setScalar(.175); this.heldCube.position.set(.026,.018,-.11);
     } else if(id) {
       const img=new Image(); img.src=itemIcon(id);
       img.onload=()=>{
@@ -337,7 +377,7 @@ export class View {
     this.swing=Math.max(0,this.swing-dt); this.kick=Math.max(0,this.kick-dt);
     const swing=Math.sin(this.swing/.30*Math.PI);
     const aspect=this.camera.aspect;
-    this.hand.position.set(Math.min(.56,aspect*.405)+Math.cos(p.bob*.5)*p.move*.005-swing*.22,-.39+bob*.60-this.kick-swing*.105,-.64-swing*.30);
+    this.hand.position.set(Math.min(.59,aspect*.445)+Math.cos(p.bob*.5)*p.move*.005-swing*.22,-.42+bob*.60-this.kick-swing*.105,-.66-swing*.30);
     this.hand.rotation.set(-.46-swing*.45,.54+swing*.42,-.23+swing*.53);
     this.actors(this.mobs,fauna.mobs.map(m=>[m.id,m]),dt);
     this.actors(this.remote,peers??[],dt,true);
