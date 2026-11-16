@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#131a12">
+  <meta name="description" content="方块远境是一款浏览器体素沙盒。探索群山、采集资源、合成工具，建造你的第一处营地。">
+  <meta name="apple-mobile-web-app-title" content="方块远境">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/media/icon-192.png">
+  <link rel="manifest" href="/frontier.webmanifest">
+  <link rel="preload" href="/media/frontier-display.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/src/style.css">
+  <title>方块远境 · Block Frontier</title>
+</head>
+<body>
+  <svg class="symbol-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="icon-cube" viewBox="0 0 24 24">
+      <path fill="#bfe080" d="M12 1 23 6.5 12 12 1 6.5z"/>
+      <path fill="#779a46" d="M1 6.5 12 12v11L1 17.5z"/>
+      <path fill="#45612f" d="M12 12 23 6.5v11L12 23z"/>
+      <path fill="#e7efad" d="m9 4 3-1.5L18 5l-3 1.5z"/>
+    </symbol>
+    <symbol id="icon-book" viewBox="0 0 24 24">
+      <path d="M12 6C9 3.5 5.8 3.6 3 4v15c3.5-.5 6.5.3 9 2 2.5-1.7 5.5-2.5 9-2V4c-2.8-.4-6-.5-9 2Zm0 0v15M6 8h2m-2 4h2m8-4h2m-2 4h2"/>
+    </symbol>
+    <symbol id="icon-settings" viewBox="0 0 24 24">
+      <path d="M5 3v8m0 4v6m7-18v4m0 4v10m7-18v12m0 4v2M2 11h6m1-4h6m1 8h6"/>
+    </symbol>
+    <symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="icon-pause" viewBox="0 0 24 24"><path d="M9 5v14m6-14v14" stroke-width="3"/></symbol>
+    <symbol id="icon-pick" viewBox="0 0 24 24"><path d="m4 20 10-10m-6-5c4-3 10-2 13 4l-3 2-3-4-4 1z"/></symbol>
+    <symbol id="icon-place" viewBox="0 0 24 24"><path d="m12 2 9 5v10l-9 5-9-5V7Zm0 10 9-5M3 7l9 5v10"/></symbol>
+    <symbol id="icon-jump" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7m-7-7v14"/></symbol>
+    <symbol id="icon-bag" viewBox="0 0 24 24"><path d="M8 6V4h8v2M5 6h14l2 5v9H3v-9zm2 7h10v4H7z"/></symbol>
+    <symbol id="icon-mouse" viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="6"/><path d="M12 6v4"/></symbol>
+    <symbol id="icon-touch" viewBox="0 0 24 24"><path d="M9 13V5a1.5 1.5 0 0 1 3 0v6l4-1 4 3v4l-3 4H9l-5-6c0-2 2-2 3-1l2 2"/></symbol>
+    <symbol id="icon-party" viewBox="0 0 24 24"><path d="M4 18v-2l4-2h4l4 2v2Zm3-9a3 3 0 1 0 6 0 3 3 0 0 0-6 0Zm10-3a3 3 0 0 1 0 6m2 3 2 1v2"/></symbol>
+  </svg>
+  <div id="game" aria-label="方块远境游戏画面"></div>
+
+  <main id="menu" class="title-screen">
+    <img class="title-landscape" src="/media/frontier.webp" alt="" fetchpriority="high">
+    <div class="title-shade"></div>
+    <div class="title-frame" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <header class="menu-header">
+      <div class="wordmark">
+        <svg class="wordmark-icon" aria-hidden="true"><use href="#icon-cube"/></svg>
+        <span>BLOCK FRONTIER</span>
+      </div>
+      <nav class="menu-nav" aria-label="菜单">
+        <button id="help" class="nav-button" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-book"/></svg><span>操作指南</span></button>
+        <button id="menu-settings" class="nav-button" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-settings"/></svg><span>设置</span></button>
+      </nav>
+    </header>
+
+    <div class="menu-main">
+      <div class="hero">
+        <h1 class="hero-title">
+          <span class="hero-title-en" aria-hidden="true"><span>BLOCK</span><span>FRONTIER</span></span>
+          <span class="hero-title-cn">方块远境</span>
+        </h1>
+        <p class="hero-description">翻过山脊，循着溪流去探险。<br>采集、合成、建造，在方块世界里安家。</p>
+
+        <div class="world-settings">
+          <label class="field mode-field">
+            <span>游戏模式</span>
+            <select id="mode">
+              <option value="survival">生存</option>
+              <option value="creative">创造</option>
+            </select>
+          </label>
+          <label class="field seed-field">
+            <span>世界种子</span>
+            <input id="seed" type="text" maxlength="60" placeholder="留空使用默认种子" spellcheck="false" autocomplete="off">
+          </label>
+        </div>
+        <div class="launch-actions">
+          <button id="continue" class="button button-primary launch-button" type="button" hidden>继续探索</button>
+          <button id="start" class="button button-primary launch-button" type="button">进入世界</button>
+          <button id="online-open" class="button launch-button online-button" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-party"/></svg>联机房间</button>
+        </div>
+      </div>
+    </div>
+
+    <footer class="menu-footer">
+      <div class="menu-inputs">
+        <span><svg class="icon" aria-hidden="true"><use href="#icon-mouse"/></svg>键盘与鼠标</span>
+        <span><svg class="icon" aria-hidden="true"><use href="#icon-touch"/></svg>触屏操作</span>
+      </div>
+      <span class="build-mark"><i></i> 浏览器版 <b>1.0</b></span>
+    </footer>
+  </main>
+
+  <div id="hud" hidden>
+    <div class="hud-top">
+      <div class="hud-discovery">
+        <div class="hud-objective-icon" aria-hidden="true"><svg class="icon"><use href="#icon-book"/></svg></div>
+        <div class="hud-discovery-copy"><div class="hud-eyebrow">探索日志</div><div id="objective"></div></div>
+      </div>
+      <div class="hud-world"><div id="status"></div><div id="coords"></div></div>
+      <button id="room-badge" class="hud-button" type="button" aria-label="打开联机房间" hidden><svg class="icon" aria-hidden="true"><use href="#icon-party"/></svg></button>
+      <button id="hud-pause" class="hud-button" type="button" aria-label="暂停"><svg class="icon" aria-hidden="true"><use href="#icon-pause"/></svg></button>
+    </div>
+    <div id="crosshair" aria-hidden="true"></div>
+    <div id="mining-meter" aria-hidden="true"></div>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <div class="hud-bottom">
+      <div id="vitals"></div>
+      <div id="hotbar" aria-label="快捷栏"></div>
+    </div>
+  </div>
+
+  <div id="mobile" hidden>
+    <button id="act-pause" class="hud-button mobile-pause" type="button" aria-label="暂停"><svg class="icon" aria-hidden="true"><use href="#icon-pause"/></svg></button>
+    <div id="move-pad" aria-label="移动摇杆"><div id="move-knob"></div></div>
+    <div class="touch-actions">
+      <button id="act-bag" class="touch-button small-touch" type="button" aria-label="背包"><svg class="icon" aria-hidden="true"><use href="#icon-bag"/></svg></button>
+      <button id="act-jump" class="touch-button small-touch" type="button" aria-label="跳跃"><svg class="icon" aria-hidden="true"><use href="#icon-jump"/></svg></button>
+      <button id="act-break" class="touch-button" type="button" aria-label="开采"><svg class="icon" aria-hidden="true"><use href="#icon-pick"/></svg></button>
+      <button id="act-place" class="touch-button place-touch" type="button" aria-label="放置"><svg class="icon" aria-hidden="true"><use href="#icon-place"/></svg></button>
+    </div>
+  </div>
+
+  <section id="pause" class="overlay" aria-label="游戏暂停" role="dialog" aria-modal="true" hidden>
+    <div class="panel narrow-panel">
+      <header class="panel-head"><span class="panel-glyph"><svg class="icon" aria-hidden="true"><use href="#icon-pause"/></svg></span><h2>游戏暂停</h2></header>
+      <div class="panel-content stack-actions">
+        <button id="resume" class="button button-primary" type="button">继续探索</button>
+        <button id="pause-settings" class="button" type="button">设置</button>
+        <button id="pause-help" class="button" type="button">操作指南</button>
+        <button id="quit" class="button quiet-button" type="button">保存并返回主菜单</button>
+      </div>
+    </div>
+  </section>
+  <section id="inventory" class="overlay" aria-label="背包与合成" role="dialog" aria-modal="true" hidden>
+    <div class="panel bag-panel">
+      <header class="panel-head"><span class="panel-glyph"><svg class="icon" aria-hidden="true"><use href="#icon-bag"/></svg></span><h2>背包与合成</h2><button id="bag-close" class="close-button" type="button" aria-label="关闭背包"><svg class="icon" aria-hidden="true"><use href="#icon-close"/></svg></button></header>
+      <div class="panel-content bag-content">
+        <section><h3>随身物品</h3><div id="items"></div><p id="inventory-caption" class="panel-note"></p></section>
+        <section><h3>合成配方</h3><div id="recipes"></div></section>
+      </div>
+    </div>
+  </section>
+  <section id="settings" class="overlay" aria-label="游戏设置" role="dialog" aria-modal="true" hidden>
+    <div class="panel">
+      <header class="panel-head"><span class="panel-glyph"><svg class="icon" aria-hidden="true"><use href="#icon-settings"/></svg></span><h2>设置</h2><button id="settings-close" class="close-button" type="button" aria-label="关闭设置"><svg class="icon" aria-hidden="true"><use href="#icon-close"/></svg></button></header>
+      <div class="panel-content settings-content">
+        <label class="setting-row"><span><strong>画质</strong><small>调整视野距离、分辨率与光影效果</small></span><select id="quality"><option value="auto">自动</option><option value="low">流畅</option><option value="high">高清</option><option value="ultra">极致</option></select></label>
+        <label class="setting-row"><span><strong>音量</strong><small>控制游戏音效与环境声</small></span><input id="volume" type="range" min="0" max="100" value="55"></label>
+        <label class="setting-row"><span><strong>视角灵敏度</strong><small>控制视角转动速度</small></span><input id="sensitivity" type="range" min="25" max="200" value="100"></label>
+        <div class="setting-row"><span><strong>全屏显示</strong><small>在支持的浏览器中展开游戏画面</small></span><button id="fullscreen" class="button" type="button">切换全屏</button></div>
+      </div>
+    </div>
+  </section>
+  <section id="help-panel" class="overlay" aria-label="操作指南" role="dialog" aria-modal="true" hidden>
+    <div class="panel">
+      <header class="panel-head"><span class="panel-glyph"><svg class="icon" aria-hidden="true"><use href="#icon-book"/></svg></span><h2>操作指南</h2><button id="help-close" class="close-button" type="button" aria-label="关闭指南"><svg class="icon" aria-hidden="true"><use href="#icon-close"/></svg></button></header>
+      <div class="panel-content help-content">
+        <p class="panel-note">先收集原木和石头，打开背包合成工具。天黑前造好庇护所，记得带上火把。</p>
+        <div class="help-columns">
+          <section>
+            <h3>电脑</h3>
+            <dl class="control-list">
+              <div><dt>移动</dt><dd><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dd></div>
+              <div><dt>跳跃</dt><dd><kbd>空格</kbd></dd></div>
+              <div><dt>开采 / 放置</dt><dd>鼠标左键 / 右键</dd></div>
+              <div><dt>快捷栏</dt><dd><kbd>1</kbd>–<kbd>9</kbd> / 滚轮</dd></div>
+              <div><dt>背包 / 暂停</dt><dd><kbd>E</kbd> / <kbd>Esc</kbd></dd></div>
+              <div><dt>创造模式飞行</dt><dd><kbd>F</kbd> / 连按空格两次</dd></div>
+            </dl>
+          </section>
+          <section>
+            <h3>手机</h3>
+            <dl class="control-list">
+              <div><dt>移动</dt><dd>左侧摇杆</dd></div>
+              <div><dt>转动视角</dt><dd>拖动游戏画面</dd></div>
+              <div><dt>开采 / 放置</dt><dd>镐 / 方块按钮</dd></div>
+              <div><dt>选择物品</dt><dd>点击底部快捷栏</dd></div>
+              <div><dt>背包 / 跳跃</dt><dd>背包 / 上箭头按钮</dd></div>
+              <div><dt>创造模式飞行</dt><dd>连按跳跃两次，摇杆后拉下降</dd></div>
+            </dl>
+          </section>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section id="death" class="overlay" aria-label="角色倒下" role="dialog" aria-modal="true" hidden>
+    <div class="panel narrow-panel">
+      <header class="panel-head"><span class="panel-glyph"><svg class="icon" aria-hidden="true"><use href="#icon-cube"/></svg></span><h2>旅程暂歇</h2></header>
+      <div class="panel-content stack-actions"><p class="panel-note">你倒下了。回到出生点继续探索。</p><button id="respawn" class="button button-primary" type="button">重新出发</button></div>
+    </div>
+  </section>
+  <section id="online" class="overlay" aria-label="联机房间" role="dialog" aria-modal="true" hidden>
+    <div class="panel room-panel">
+      <header class="panel-head"><span class="panel-glyph"><svg class="icon" aria-hidden="true"><use href="#icon-party"/></svg></span><h2>联机房间</h2><button id="online-close" class="close-button" type="button" aria-label="关闭联机房间"><svg class="icon" aria-hidden="true"><use href="#icon-close"/></svg></button></header>
+      <div class="panel-content">
+        <p class="panel-note">创建一个世界并分享房间号，或输入朋友的房间号加入。</p>
+        <label class="room-field"><span>玩家昵称</span><input id="room-name" type="text" maxlength="20" placeholder="探险家" autocomplete="nickname"></label>
+        <label class="room-field"><span>房间号</span><input id="room-code" type="text" maxlength="40" placeholder="输入房间号" autocomplete="off" autocapitalize="characters" spellcheck="false"></label>
+        <div class="room-actions"><button id="room-join" class="button button-primary" type="button">加入房间</button><button id="room-create" class="button" type="button">创建房间</button></div>
+        <div id="room-status" class="panel-note room-status" role="status"></div>
+        <div id="room-list"></div>
+      </div>
+    </div>
+  </section>
+  <section id="party" class="overlay" aria-label="当前房间" role="dialog" aria-modal="true" hidden>
+    <div class="panel room-panel">
+      <header class="panel-head"><span class="panel-glyph"><svg class="icon" aria-hidden="true"><use href="#icon-party"/></svg></span><h2>当前房间</h2><button id="party-close" class="close-button" type="button" aria-label="关闭当前房间面板"><svg class="icon" aria-hidden="true"><use href="#icon-close"/></svg></button></header>
+      <div class="panel-content">
+        <div class="room-current"><span>房间号</span><strong id="party-code"></strong></div>
+        <div id="party-players"></div>
+        <div class="room-actions"><button id="party-copy" class="button button-primary" type="button">复制邀请链接</button><button id="party-leave" class="button quiet-button" type="button">离开房间</button></div>
+      </div>
+    </div>
+  </section>
+  <div id="error" role="alert" hidden></div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

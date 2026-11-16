@@ -1,0 +1,16 @@
+{
+  "id": "./",
+  "name": "方块远境 · Block Frontier",
+  "short_name": "方块远境",
+  "description": "探索群山、采集资源、合成工具，建造你的第一处营地。",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "theme_color": "#131a12",
+  "background_color": "#131a12",
+  "icons": [
+    { "src": "media/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "media/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
